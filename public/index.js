@@ -1,32 +1,48 @@
 
 
-$(() => {
-  const socket = io()
+$(function () {
+    const socket = io()
 
-  $("form").submit(() => {
-      socket.emit("message",  $("#texto").val())
-       return false
-  })
-  socket.on( 'message',(texto) => $('#messagens').append($('<li>').text(texto)) )
+    socket.nickname = ''
 
+    $('form').submit(() => submeterForm(socket))
 
+    socket.on('chat msg', exibirMsg)
+})
 
-  let lastTime = new Date().getTime()
-  $("#texto").keydown(() => {
-    const interval = new Date().getTime() - lastTime
-    if(interval > 800){
+function exibirMsg(msg) {
+    $('#messages').append($('<li>').text(msg))
+}
 
-      socket.emit("status",  "Usuário está digitando")
-      console.log("Usuário está digitando")
-      lastTime = new Date().getTime()
+function submeterForm(socket) {
+    if (socket.nickname === '') {
+        socket.nickname = $('#msg').val()
+        socket.emit('login', socket.nickname)
+
+        $('#msg').prop('placeholder', 'Digite uma mensagem');
+        $('#button1').html('Enviar');
+
+        socket.on('status', exibirMsgStatus)
+        $('#msg').keypress(() => informaUsuariosInicioDigitacao(socket))
+
+        $('#msg').keyup(() => socket.emit('status', ''))
+    } else {
+        socket.emit('chat msg', $('#msg').val())
     }
 
-  })
-  $("#texto").keyup(() => setTimeout (()  =>  socket.emit("status",  ""),  500 ))
+    $('#msg').val('')
+    return false
+}
 
+function informaUsuariosInicioDigitacao(socket) {
+    if (socket.nickname === '') {
+        return
+    }
 
-  socket.on( "status",(texto) => $("#status").html(texto ))
+    socket.emit('status', socket.nickname + ' está escrevendo...')
+}
 
-
-
-})
+function exibirMsgStatus(msg) {
+    $('#status').html(msg)
+    console.log(msg)
+}
